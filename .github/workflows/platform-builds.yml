@@ -75,21 +75,33 @@ jobs:
       - run: yarn prepare-release
         if: steps.repo_check.outputs.should_build == 'true' || steps.semantic.outputs.new_release_published == 'true'
       
-      - run: yarn package ${{ matrix.build.task }}
-        if: steps.repo_check.outputs.should_build == 'true' || steps.semantic.outputs.new_release_published == 'true'
+      # For forks: build locally without uploading to stores
+      - name: Package (local build only)
+        if: steps.repo_check.outputs.should_build == 'true'
+        run: yarn package ${{ matrix.build.task }}
+        env:
+          # No GH_TOKEN or store credentials - prevents uploads
+          NODE_ENV: development
+      
+      # For original repo: full package with store uploads
+      - name: Package with store upload (original repo only)
+        if: steps.repo_check.outputs.is_original_repo == 'true' && steps.semantic.outputs.new_release_published == 'true'
+        run: yarn package ${{ matrix.build.task }}
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       
-      # Set Snapcraft credentials only for original repo Linux builds
-      - name: Package with Snapcraft (original repo only)
+      # Separate Snapcraft upload for Linux builds on original repo
+      - name: Upload to Snapcraft Store (Linux only, original repo)
         if: steps.repo_check.outputs.is_original_repo == 'true' && matrix.build.task == 'linux' && steps.semantic.outputs.new_release_published == 'true'
-        run: yarn package ${{ matrix.build.task }}
+        run: |
+          # Re-run package command with Snapcraft credentials for store upload
+          yarn package linux
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           SNAPCRAFT_STORE_CREDENTIALS: ${{ secrets.SNAPCRAFT_STORE_CREDENTIALS }}
       
       - name: Upload build artifacts
-        if: steps.should_release.outputs.new_release_published == 'true' || steps.semantic.outputs.new_release_published == 'true'
+        if: steps.repo_check.outputs.should_build == 'true' || steps.semantic.outputs.new_release_published == 'true'
         uses: actions/upload-artifact@v4
         with:
           name: build-${{ matrix.build.task }}-${{ runner.os }}
