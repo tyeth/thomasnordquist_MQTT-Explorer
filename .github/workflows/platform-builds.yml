@@ -101,7 +101,6 @@ jobs:
           SNAPCRAFT_STORE_CREDENTIALS: ${{ secrets.SNAPCRAFT_STORE_CREDENTIALS }}
       
       - name: Upload build artifacts
-        if: steps.repo_check.outputs.should_build == 'true' || steps.semantic.outputs.new_release_published == 'true'
         uses: actions/upload-artifact@v4
         with:
           name: build-${{ matrix.build.task }}-${{ runner.os }}
