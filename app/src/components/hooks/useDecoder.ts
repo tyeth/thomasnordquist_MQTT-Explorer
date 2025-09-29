@@ -22,9 +22,14 @@ export function useDecoder(treeNode: q.TreeNode<TopicViewModel> | undefined): De
 
   return useCallback(
     message => {
-      return decoder && message.payload
-        ? decoder.decoder.decode(message.payload, decoder.format)
-        : { message: message.payload ?? undefined, decoder: Decoder.NONE }
+      if (decoder && message.payload) {
+        const result = decoder.decoder.decode(message.payload, decoder.format)
+        // Ensure the result always has a decoder property
+        return result && typeof result === 'object' && 'decoder' in result
+          ? result
+          : { message: message.payload, decoder: Decoder.NONE }
+      }
+      return { message: message.payload ?? undefined, decoder: Decoder.NONE }
     },
     [decoder]
   )

@@ -183,26 +183,33 @@ export class GenericProtobufSchemaLoader {
     }
   }
 
-  public tryDecodeMessage(buffer: Uint8Array): { messageType: string; namespace: string; data: any } | undefined {
+  public tryDecodeMessage(buffer: Uint8Array, topic?: string): { messageType: string; namespace: string; data: any } | undefined {
     if (this.loadedSchemas.length === 0) {
       return undefined
     }
 
-    const compatibleResults = this.getCompatibleMessageTypes(buffer)
+    const compatibleResults = this.getCompatibleMessageTypes(buffer, topic)
     if (compatibleResults.length === 0) {
       return undefined
     }
 
-    // Return the first compatible result (they're already sorted by compatibility)
+    // Return the first compatible result (they're already sorted by compatibility and topic match)
     return compatibleResults[0]
   }
 
-  public getCompatibleMessageTypes(buffer: Uint8Array): Array<{ messageType: string; namespace: string; data: any; isHighlyCompatible: boolean }> {
+  public getCompatibleMessageTypes(buffer: Uint8Array, topic?: string): Array<{ messageType: string; namespace: string; data: any; isHighlyCompatible: boolean; topicMatch?: boolean }> {
     if (this.loadedSchemas.length === 0) {
       return []
     }
 
-    const results: Array<{ messageType: string; namespace: string; data: any; isHighlyCompatible: boolean }> = []
+    const results: Array<{ messageType: string; namespace: string; data: any; isHighlyCompatible: boolean; topicMatch?: boolean }> = []
+
+    // Extract last topic segment for matching
+    let topicSegment = ''
+    if (topic) {
+      const segments = topic.split('/')
+      topicSegment = segments[segments.length - 1].toLowerCase()
+    }
 
     // Try to decode with each message type
     for (const schema of this.loadedSchemas) {
@@ -212,7 +219,7 @@ export class GenericProtobufSchemaLoader {
 
         if (!verified) {
           const data = schema.type.toObject(decoded, {
-            defaults: false,
+            defaults: true,
             arrays: true,
             objects: true,
             oneofs: true,
@@ -221,11 +228,18 @@ export class GenericProtobufSchemaLoader {
           // Check if the decoded data is meaningful (not just empty/default values)
           const isHighlyCompatible = this.hasSignificantContent(data)
 
+          // Check if message type matches the last topic segment
+          const topicMatch = Boolean(topicSegment && (
+            schema.name.toLowerCase().startsWith(topicSegment) ||
+            schema.name.toLowerCase().includes(topicSegment)
+          ))
+
           results.push({
             messageType: schema.name,
             namespace: schema.namespace,
             data,
             isHighlyCompatible,
+            topicMatch,
           })
         }
       } catch {
@@ -233,11 +247,26 @@ export class GenericProtobufSchemaLoader {
       }
     }
 
-    // Sort by compatibility: highly compatible first, then by name
+    // Sort by priority: topic match + highly compatible first, then topic match, then highly compatible, then by name
     return results.sort((a, b) => {
+      // First priority: topic match + highly compatible
+      const aTopicAndCompatible = a.topicMatch && a.isHighlyCompatible
+      const bTopicAndCompatible = b.topicMatch && b.isHighlyCompatible
+      if (aTopicAndCompatible !== bTopicAndCompatible) {
+        return aTopicAndCompatible ? -1 : 1
+      }
+
+      // Second priority: highly compatible
       if (a.isHighlyCompatible !== b.isHighlyCompatible) {
         return a.isHighlyCompatible ? -1 : 1
       }
+
+      // Third priority: topic match (regardless of compatibility)
+      if (a.topicMatch !== b.topicMatch) {
+        return a.topicMatch ? -1 : 1
+      }
+
+      // Final sort: alphabetical by name
       return a.messageType.localeCompare(b.messageType)
     })
   }
@@ -280,7 +309,7 @@ export class GenericProtobufSchemaLoader {
     try {
       const decoded = schema.type.decode(buffer)
       return schema.type.toObject(decoded, {
-        defaults: false,
+        defaults: true,
         arrays: true,
         objects: true,
         oneofs: true,

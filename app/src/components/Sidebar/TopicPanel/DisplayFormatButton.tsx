@@ -7,35 +7,27 @@ import Paper from '@material-ui/core/Paper'
 import Popper from '@material-ui/core/Popper'
 import MenuItem from '@material-ui/core/MenuItem'
 import MenuList from '@material-ui/core/MenuList'
-import WarningRounded from '@material-ui/icons/WarningRounded'
-import { MessageDecoder, decoders } from '../../../decoders'
-import { Tooltip } from '@material-ui/core'
+import { TopicDataType } from '../../../../../backend/src/Model/TreeNode'
 
-export const TopicTypeButton = (props: { node?: q.TreeNode<any> }) => {
+const DISPLAY_FORMATS: TopicDataType[] = ['json', 'string', 'hex']
+
+export const DisplayFormatButton = (props: { node?: q.TreeNode<any> }) => {
   const { node } = props
   if (!node || !node.message || !node.message.payload) {
     return null
   }
 
-  const decoderOptions = decoders.flatMap(decoder => decoder.formats.map(format => [decoder, format] as const))
-  const clearOption: [null, string] = [null, 'Clear Decoder']
-  const options = [clearOption, ...decoderOptions]
-
   const [anchorEl, setAnchorEl] = React.useState<null | HTMLElement>(null)
   const [open, setOpen] = React.useState(false)
 
-  const selectOption = useCallback(
-    (decoder: MessageDecoder | null, format: string) => {
+  const selectFormat = useCallback(
+    (format: TopicDataType) => {
       if (!node) {
         return
       }
 
-      if (decoder === null) {
-        // Clear decoder
-        node.viewModel.decoder = undefined
-      } else {
-        node.viewModel.decoder = { decoder, format }
-      }
+      node.type = format
+      node.onMerge.dispatch()
       setOpen(false)
     },
     [node]
@@ -62,7 +54,7 @@ export const TopicTypeButton = (props: { node?: q.TreeNode<any> }) => {
 
   return (
     <Button onClick={handleToggle}>
-      {props.node?.viewModel?.decoder?.format ?? 'No Decoder'}
+      {props.node?.type ?? 'json'}
       <Popper open={open} anchorEl={anchorEl} role={undefined} transition>
         {({ TransitionProps, placement }) => (
           <Grow
@@ -73,14 +65,14 @@ export const TopicTypeButton = (props: { node?: q.TreeNode<any> }) => {
           >
             <Paper>
               <ClickAwayListener onClickAway={handleClose}>
-                <MenuList id="topicTypeMode">
-                  {options.map(([decoder, format], index) => (
+                <MenuList id="displayFormatMode">
+                  {DISPLAY_FORMATS.map((format) => (
                     <MenuItem
-                      key={decoder ? format : 'clear'}
-                      selected={decoder === null ? !node?.viewModel?.decoder : node?.viewModel?.decoder?.format === format}
-                      onClick={() => selectOption(decoder, format)}
+                      key={format}
+                      selected={node?.type === format}
+                      onClick={() => selectFormat(format)}
                     >
-                      {decoder ? <DecoderStatus decoder={decoder} format={format} node={node} /> : format}
+                      {format}
                     </MenuItem>
                   ))}
                 </MenuList>
@@ -90,21 +82,5 @@ export const TopicTypeButton = (props: { node?: q.TreeNode<any> }) => {
         )}
       </Popper>
     </Button>
-  )
-}
-
-function DecoderStatus({ node, decoder, format }: { node: q.TreeNode<any>; decoder: MessageDecoder | null; format: string }) {
-  const decoded = useMemo(() => {
-    return decoder && node.message?.payload ? decoder.decode(node.message?.payload, format) : null
-  }, [node.message, decoder, format])
-
-  return decoded?.error ? (
-    <Tooltip title={decoded.error}>
-      <div>
-        {format} <WarningRounded />
-      </div>
-    </Tooltip>
-  ) : (
-    <>{format}</>
   )
 }

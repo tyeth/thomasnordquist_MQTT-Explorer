@@ -7,6 +7,7 @@ import { ValueRendererDisplayMode } from '../../../reducers/Settings'
 import { Fade, Select, MenuItem, FormControl, InputLabel, Box } from '@material-ui/core'
 import { Decoder } from '../../../../../backend/src/Model/Decoder'
 import { useDecoder } from '../../hooks/useDecoder'
+import { useTreeNodeChanges } from '../../hooks/useTreeNodeChanges'
 import { TopicViewModel } from '../../../model/TopicViewModel'
 import { GenericProtobufSchemaLoader } from '../../../decoders/protobuf/GenericProtobufSchemaLoader'
 import { Base64Message } from '../../../../../backend/src/Model/Base64Message'
@@ -76,6 +77,7 @@ function renderRawMode(
 }
 
 export const ValueRenderer: React.FC<Props> = ({ treeNode, compareWith: compare, message, renderMode }) => {
+  useTreeNodeChanges(treeNode) // Subscribe to TreeNode changes to force re-renders
   const decodeMessage = useDecoder(treeNode)
   const decodedMessage = useMemo(() => decodeMessage(message), [decodeMessage, message])
   const [selectedProtobufType, setSelectedProtobufType] = useState<string>('')
@@ -89,17 +91,19 @@ export const ValueRenderer: React.FC<Props> = ({ treeNode, compareWith: compare,
     try {
       const buffer = new Uint8Array(message.payload.toBuffer())
       const schemaLoader = GenericProtobufSchemaLoader.getInstance()
-      return schemaLoader.getCompatibleMessageTypes(buffer)
+      // Pass the topic from treeNode for smart sorting
+      const topic = treeNode?.path()
+      return schemaLoader.getCompatibleMessageTypes(buffer, topic)
     } catch {
       return []
     }
-  }, [decodedMessage, message])
+  }, [decodedMessage, message, treeNode])
 
-  // Auto-select the first highly compatible type or first available type
+  // Auto-select the best match: topic + compatible, then topic, then compatible, then first
   useMemo(() => {
     if (compatibleProtobufTypes.length > 0 && !selectedProtobufType) {
-      const highlyCompatible = compatibleProtobufTypes.find(t => t.isHighlyCompatible)
-      setSelectedProtobufType(highlyCompatible?.namespace || compatibleProtobufTypes[0].namespace)
+      // The array is already sorted with our priority logic, so just take the first one
+      setSelectedProtobufType(compatibleProtobufTypes[0].namespace)
     }
   }, [compatibleProtobufTypes, selectedProtobufType])
 

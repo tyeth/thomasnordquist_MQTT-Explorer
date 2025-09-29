@@ -15,6 +15,7 @@ import { sidebarActions } from '../../../actions'
 import DeleteSelectedTopicButton from './DeleteSelectedTopicButton'
 import { MessageId } from '../MessageId'
 import { useDecoder } from '../../hooks/useDecoder'
+import { useTreeNodeChanges } from '../../hooks/useTreeNodeChanges'
 
 interface Props {
   node?: q.TreeNode<any>
@@ -36,6 +37,7 @@ function RenderedValue(props: { node?: q.TreeNode<any>; compareMessage?: q.Messa
 
 function ValuePanel(props: Props) {
   const { node, compareMessage } = props
+  useTreeNodeChanges(node) // Subscribe to TreeNode changes to force re-renders
   const decodeMessage = useDecoder(node)
 
   function renderViewOptions() {
