@@ -21,6 +21,31 @@ interface Props {
 }
 
 class ProtobufSchemaFolder extends React.PureComponent<Props> {
+  public componentDidMount() {
+    // Initialize the schema loader with the persisted folder path if it exists
+    const { protobufSchemaFolder } = this.props
+    if (protobufSchemaFolder) {
+      const schemaLoader = GenericProtobufSchemaLoader.getInstance()
+      schemaLoader.setSchemaFolder(protobufSchemaFolder)
+      console.log('[ProtobufSchemaFolder] Initialized schema loader with persisted folder:', protobufSchemaFolder)
+    }
+  }
+
+  public componentDidUpdate(prevProps: Props) {
+    // Handle changes to the protobuf schema folder setting
+    const { protobufSchemaFolder } = this.props
+    if (prevProps.protobufSchemaFolder !== protobufSchemaFolder) {
+      const schemaLoader = GenericProtobufSchemaLoader.getInstance()
+      if (protobufSchemaFolder) {
+        schemaLoader.setSchemaFolder(protobufSchemaFolder)
+        console.log('[ProtobufSchemaFolder] Updated schema loader with new folder:', protobufSchemaFolder)
+      } else {
+        schemaLoader.setSchemaFolder('')
+        console.log('[ProtobufSchemaFolder] Cleared schema loader folder')
+      }
+    }
+  }
+
   private handleSelectFolder = async () => {
     try {
       const folderPath = await rendererRpc.call(selectProtobufFolder, undefined, 10000)

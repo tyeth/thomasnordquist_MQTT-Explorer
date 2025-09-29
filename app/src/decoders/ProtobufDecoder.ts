@@ -44,6 +44,7 @@ export const ProtobufDecoder: MessageDecoder = {
 
       // Quick check: if it looks like JSON, it's probably not protobuf
       const firstBytes = buffer.slice(0, Math.min(buffer.length, 10))
+      console.log('[ProtobufDecoder] Data first bytes:', Array.from(firstBytes).map(b => b.toString(16)))
       const hasJsonChars = firstBytes.some(
         byte =>
           byte === 0x7b || // {
@@ -54,7 +55,6 @@ export const ProtobufDecoder: MessageDecoder = {
       if (hasJsonChars) {
         return false
       }
-
       // Check for protobuf-like varint field tags (field numbers 1-15 are common)
       // These would be encoded as 0x08, 0x10, 0x18, 0x20, 0x28, 0x30, 0x38, 0x40, 0x48, 0x50, 0x58, 0x60, 0x68, 0x70, 0x78
       const hasProtobufMarkers = firstBytes.some(

@@ -1,13 +1,15 @@
 import * as q from '../../../../../backend/src/Model'
-import React, { useMemo } from 'react'
+import React, { useMemo, useState, useCallback } from 'react'
 import CodeDiff from '../CodeDiff'
 import { AppState } from '../../../reducers'
 import { connect } from 'react-redux'
 import { ValueRendererDisplayMode } from '../../../reducers/Settings'
-import { Fade } from '@material-ui/core'
+import { Fade, Select, MenuItem, FormControl, InputLabel, Box } from '@material-ui/core'
 import { Decoder } from '../../../../../backend/src/Model/Decoder'
 import { useDecoder } from '../../hooks/useDecoder'
 import { TopicViewModel } from '../../../model/TopicViewModel'
+import { GenericProtobufSchemaLoader } from '../../../decoders/protobuf/GenericProtobufSchemaLoader'
+import { Base64Message } from '../../../../../backend/src/Model/Base64Message'
 
 interface Props {
   message: q.Message
@@ -76,6 +78,61 @@ function renderRawMode(
 export const ValueRenderer: React.FC<Props> = ({ treeNode, compareWith: compare, message, renderMode }) => {
   const decodeMessage = useDecoder(treeNode)
   const decodedMessage = useMemo(() => decodeMessage(message), [decodeMessage, message])
+  const [selectedProtobufType, setSelectedProtobufType] = useState<string>('')
+
+  // Get compatible protobuf types for the current message
+  const compatibleProtobufTypes = useMemo(() => {
+    if (decodedMessage?.decoder !== Decoder.PROTOBUF || !message.payload) {
+      return []
+    }
+
+    try {
+      const buffer = new Uint8Array(message.payload.toBuffer())
+      const schemaLoader = GenericProtobufSchemaLoader.getInstance()
+      return schemaLoader.getCompatibleMessageTypes(buffer)
+    } catch {
+      return []
+    }
+  }, [decodedMessage, message])
+
+  // Auto-select the first highly compatible type or first available type
+  useMemo(() => {
+    if (compatibleProtobufTypes.length > 0 && !selectedProtobufType) {
+      const highlyCompatible = compatibleProtobufTypes.find(t => t.isHighlyCompatible)
+      setSelectedProtobufType(highlyCompatible?.namespace || compatibleProtobufTypes[0].namespace)
+    }
+  }, [compatibleProtobufTypes, selectedProtobufType])
+
+  // Create a custom decoded message for the selected protobuf type
+  const customDecodedMessage = useMemo(() => {
+    if (decodedMessage?.decoder !== Decoder.PROTOBUF || !selectedProtobufType || compatibleProtobufTypes.length === 0) {
+      return decodedMessage
+    }
+
+    const selectedType = compatibleProtobufTypes.find(t => t.namespace === selectedProtobufType)
+    if (!selectedType) {
+      return decodedMessage
+    }
+
+    // Create a new decoded message with the selected type's data
+    const customJson = {
+      messageType: selectedType.messageType,
+      namespace: selectedType.namespace,
+      timestamp: new Date().toISOString(),
+      data: selectedType.data,
+      _meta: {
+        decoder: 'Protobuf',
+        protobufType: selectedType.messageType,
+        protobufNamespace: selectedType.namespace,
+        originalSize: message.payload?.toBuffer().byteLength || 0,
+        schemaFolder: GenericProtobufSchemaLoader.getInstance().getSchemaFolder(),
+        isHighlyCompatible: selectedType.isHighlyCompatible,
+      },
+    }
+
+    const customMessage = Base64Message.fromString(JSON.stringify(customJson, null, 2))
+    return { message: customMessage, decoder: Decoder.PROTOBUF }
+  }, [decodedMessage, selectedProtobufType, compatibleProtobufTypes, message])
 
   const previousMessages = treeNode.messageHistory.toArray()
   const previousMessage = previousMessages[previousMessages.length - 2]
@@ -83,13 +140,17 @@ export const ValueRenderer: React.FC<Props> = ({ treeNode, compareWith: compare,
   const compareWithPreviousMessage = !!compare
 
   const [currentStr, currentType] = useMemo(
-    () => decodedMessage?.message?.format(treeNode.type) ?? [],
-    [decodedMessage, treeNode.type]
+    () => customDecodedMessage?.message?.format(treeNode.type) ?? [],
+    [customDecodedMessage, treeNode.type]
   )
   const [compareStr, compareType] = useMemo(
     () => decodeMessage(compareMessage)?.message?.format(treeNode.type) ?? [],
     [compareMessage, decodeMessage, treeNode.type]
   )
+
+  const handleProtobufTypeChange = useCallback((event: React.ChangeEvent<{ value: unknown }>) => {
+    setSelectedProtobufType(event.target.value as string)
+  }, [])
 
   function renderValue(
     treeNode: q.TreeNode<TopicViewModel>,
@@ -100,7 +161,7 @@ export const ValueRenderer: React.FC<Props> = ({ treeNode, compareWith: compare,
     renderMode: string,
     compareWithPreviousMessage: boolean
   ) {
-    if (!decodedMessage) {
+    if (!customDecodedMessage) {
       return null
     }
 
@@ -118,10 +179,44 @@ export const ValueRenderer: React.FC<Props> = ({ treeNode, compareWith: compare,
     [treeNode, currentStr, compareStr, currentType, compareType, renderMode, compareWithPreviousMessage]
   )
 
+  const renderProtobufTypeSelector = () => {
+    if (decodedMessage?.decoder !== Decoder.PROTOBUF || compatibleProtobufTypes.length <= 1) {
+      return null
+    }
+
+    return (
+      <Box mb={1}>
+        <FormControl variant="outlined" size="small" fullWidth>
+          <InputLabel>Protobuf Message Type</InputLabel>
+          <Select
+            value={selectedProtobufType}
+            onChange={handleProtobufTypeChange}
+            label="Protobuf Message Type"
+          >
+            {compatibleProtobufTypes.map(type => (
+              <MenuItem key={type.namespace} value={type.namespace}>
+                {type.messageType}
+                {type.isHighlyCompatible ? ' (*)' : ''}
+                <span style={{ marginLeft: '8px', fontSize: '0.8em', color: '#666' }}>
+                  {type.namespace}
+                </span>
+              </MenuItem>
+            ))}
+          </Select>
+        </FormControl>
+      </Box>
+    )
+  }
+
   return (
     <div style={{ padding: '0px 0px 8px 0px', width: '100%' }}>
       {decodedMessage?.decoder === Decoder.SPARKPLUG && 'Decoded SparkplugB'}
-      {decodedMessage?.decoder === Decoder.PROTOBUF && 'Decoded Protobuf'}
+      {decodedMessage?.decoder === Decoder.PROTOBUF && (
+        <div>
+          <div>Decoded Protobuf</div>
+          {renderProtobufTypeSelector()}
+        </div>
+      )}
       {renderedValue}
     </div>
   )
