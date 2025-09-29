@@ -121,6 +121,7 @@ export const ValueRenderer: React.FC<Props> = ({ treeNode, compareWith: compare,
   return (
     <div style={{ padding: '0px 0px 8px 0px', width: '100%' }}>
       {decodedMessage?.decoder === Decoder.SPARKPLUG && 'Decoded SparkplugB'}
+      {decodedMessage?.decoder === Decoder.PROTOBUF && 'Decoded Protobuf'}
       {renderedValue}
     </div>
   )

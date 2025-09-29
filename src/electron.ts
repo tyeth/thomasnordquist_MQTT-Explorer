@@ -12,7 +12,7 @@ import { waitForDevServer, isDev, runningUiTestOnCi, loadDevTools } from './deve
 import { shouldAutoUpdate, handleAutoUpdate } from './autoUpdater'
 import { registerCrashReporter } from './registerCrashReporter'
 import { makeOpenDialogRpc, makeSaveDialogRpc } from '../events/OpenDialogRequest'
-import { backendRpc, getAppVersion, writeToFile, readFromFile } from '../events'
+import { backendRpc, getAppVersion, writeToFile, readFromFile, selectProtobufFolder } from '../events'
 
 registerCrashReporter()
 
@@ -39,6 +39,20 @@ app.whenReady().then(() => {
 
   backendRpc.on(readFromFile, async ({ filePath, encoding }) => {
     return fsPromise.readFile(filePath, { encoding })
+  })
+
+  backendRpc.on(selectProtobufFolder, async () => {
+    const result = await dialog.showOpenDialog(BrowserWindow.getFocusedWindow() ?? BrowserWindow.getAllWindows()[0], {
+      title: 'Select Protobuf Schema Folder',
+      properties: ['openDirectory'],
+      message: 'Select a folder containing .proto files for protobuf message decoding'
+    })
+
+    if (result.canceled || result.filePaths.length === 0) {
+      return undefined
+    }
+
+    return result.filePaths[0]
   })
 })
 

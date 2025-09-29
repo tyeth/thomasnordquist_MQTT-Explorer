@@ -62,3 +62,7 @@ export const writeToFile: RpcEvent<{ filePath: string, data: string, encoding?: 
 export const readFromFile: RpcEvent<{ filePath: string, encoding?: string }, Buffer> = {
   topic: 'readFromFile',
 }
+
+export const selectProtobufFolder: RpcEvent<void, string | undefined> = {
+  topic: 'selectProtobufFolder',
+}

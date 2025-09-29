@@ -3,6 +3,7 @@ import BooleanSwitch from './BooleanSwitch'
 import BrokerStatistics from './BrokerStatistics'
 import ChevronRight from '@material-ui/icons/ChevronRight'
 import TimeLocale from './TimeLocale'
+import ProtobufSchemaFolder from './ProtobufSchemaFolder'
 import { AppState } from '../../reducers'
 import { bindActionCreators } from 'redux'
 import { connect } from 'react-redux'
@@ -220,6 +221,7 @@ class Settings extends React.PureComponent<Props, {}> {
           {this.renderAutoExpand()}
           {this.renderNodeOrder()}
           <TimeLocale />
+          <ProtobufSchemaFolder />
           {this.renderHighlightTopicUpdates()}
           {this.selectTopicsOnMouseOver()}
           {this.toggleTheme()}
