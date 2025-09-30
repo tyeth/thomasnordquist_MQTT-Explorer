@@ -17,6 +17,7 @@ import {
   Chip,
   Paper,
 } from '@material-ui/core'
+import { Autocomplete } from '@material-ui/lab'
 import { ExpandMore, Add, Delete, Build } from '@material-ui/icons'
 import { GenericProtobufSchemaLoader } from '../../../decoders/protobuf/GenericProtobufSchemaLoader'
 import * as protobuf from 'protobufjs'
@@ -91,8 +92,8 @@ export const ProtobufMessageBuilder: React.FC<Props> = ({ onMessageGenerated, on
     })
   }, [selectedMessageType])
 
-  const handleMessageTypeChange = useCallback((event: React.ChangeEvent<{ value: unknown }>) => {
-    const newType = event.target.value as string
+  const handleMessageTypeChange = useCallback((event: any, value: { name: string; namespace: string } | null) => {
+    const newType = value?.namespace || ''
     setSelectedMessageType(newType)
     setMessageData({})
     setOneofSelections({})
@@ -664,25 +665,29 @@ export const ProtobufMessageBuilder: React.FC<Props> = ({ onMessageGenerated, on
         </Typography>
       </Box>
 
-      <FormControl fullWidth variant="outlined" margin="normal">
-        <InputLabel>Message Type</InputLabel>
-        <Select
-          value={selectedMessageType}
-          onChange={handleMessageTypeChange}
-          label="Message Type"
-        >
-          {availableTypes.map(type => (
-            <MenuItem key={type.namespace} value={type.namespace}>
-              <Box>
-                <Typography variant="body2">{type.name}</Typography>
-                <Typography variant="caption" color="textSecondary">
-                  {type.namespace}
-                </Typography>
-              </Box>
-            </MenuItem>
-          ))}
-        </Select>
-      </FormControl>
+      <Autocomplete
+        options={availableTypes}
+        getOptionLabel={(option) => option.name}
+        value={availableTypes.find(t => t.namespace === selectedMessageType) || null}
+        onChange={handleMessageTypeChange}
+        renderInput={(params) => (
+          <TextField
+            {...params}
+            label="Message Type"
+            variant="outlined"
+            margin="normal"
+          />
+        )}
+        renderOption={(option) => (
+          <Box>
+            <Typography variant="body2">{option.name}</Typography>
+            <Typography variant="caption" color="textSecondary">
+              {option.namespace}
+            </Typography>
+          </Box>
+        )}
+        fullWidth
+      />
 
       {selectedMessageType && (
         <Box marginTop={2}>

@@ -4,7 +4,8 @@ import CodeDiff from '../CodeDiff'
 import { AppState } from '../../../reducers'
 import { connect } from 'react-redux'
 import { ValueRendererDisplayMode } from '../../../reducers/Settings'
-import { Fade, Select, MenuItem, FormControl, InputLabel, Box } from '@material-ui/core'
+import { Fade, Select, MenuItem, FormControl, InputLabel, Box, TextField } from '@material-ui/core'
+import { Autocomplete } from '@material-ui/lab'
 import { Decoder } from '../../../../../backend/src/Model/Decoder'
 import { useDecoder } from '../../hooks/useDecoder'
 import { useTreeNodeChanges } from '../../hooks/useTreeNodeChanges'
@@ -170,8 +171,8 @@ export const ValueRenderer: React.FC<Props> = ({ treeNode, compareWith: compare,
     [compareMessage, decodeMessage, treeNode.type]
   )
 
-  const handleProtobufTypeChange = useCallback((event: React.ChangeEvent<{ value: unknown }>) => {
-    setSelectedProtobufType(event.target.value as string)
+  const handleProtobufTypeChange = useCallback((event: any, value: any | null) => {
+    setSelectedProtobufType(value?.namespace || '')
   }, [])
 
   function renderValue(
@@ -208,24 +209,33 @@ export const ValueRenderer: React.FC<Props> = ({ treeNode, compareWith: compare,
 
     return (
       <Box mb={1}>
-        <FormControl variant="outlined" size="small" fullWidth>
-          <InputLabel>Protobuf Message Type</InputLabel>
-          <Select
-            value={selectedProtobufType}
-            onChange={handleProtobufTypeChange}
-            label="Protobuf Message Type"
-          >
-            {compatibleProtobufTypes.map(type => (
-              <MenuItem key={type.namespace} value={type.namespace}>
-                {type.messageType}
-                {type.isHighlyCompatible ? ' (*)' : ''}
-                <span style={{ marginLeft: '8px', fontSize: '0.8em', color: '#666' }}>
-                  {type.namespace}
-                </span>
-              </MenuItem>
-            ))}
-          </Select>
-        </FormControl>
+        <Autocomplete
+          options={compatibleProtobufTypes}
+          getOptionLabel={(option) => `${option.messageType}${option.isHighlyCompatible ? ' (*)' : ''}`}
+          value={compatibleProtobufTypes.find(t => t.namespace === selectedProtobufType) || null}
+          onChange={handleProtobufTypeChange}
+          renderInput={(params) => (
+            <TextField
+              {...params}
+              label="Protobuf Message Type"
+              variant="outlined"
+              size="small"
+            />
+          )}
+          renderOption={(option) => (
+            <div>
+              <div>
+                {option.messageType}
+                {option.isHighlyCompatible ? ' (*)' : ''}
+              </div>
+              <div style={{ fontSize: '0.8em', color: '#666' }}>
+                {option.namespace}
+              </div>
+            </div>
+          )}
+          fullWidth
+          size="small"
+        />
       </Box>
     )
   }
