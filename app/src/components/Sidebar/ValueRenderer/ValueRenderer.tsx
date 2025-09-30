@@ -1,5 +1,5 @@
 import * as q from '../../../../../backend/src/Model'
-import React, { useMemo, useState, useCallback } from 'react'
+import React, { useMemo, useState, useCallback, useEffect } from 'react'
 import CodeDiff from '../CodeDiff'
 import { AppState } from '../../../reducers'
 import { connect } from 'react-redux'
@@ -81,6 +81,24 @@ export const ValueRenderer: React.FC<Props> = ({ treeNode, compareWith: compare,
   const decodeMessage = useDecoder(treeNode)
   const decodedMessage = useMemo(() => decodeMessage(message), [decodeMessage, message])
   const [selectedProtobufType, setSelectedProtobufType] = useState<string>('')
+  const [schemaUpdateTrigger, setSchemaUpdateTrigger] = useState(0)
+
+  // Listen for schema folder changes
+  useEffect(() => {
+    const schemaLoader = GenericProtobufSchemaLoader.getInstance()
+
+    const handleSchemaChange = () => {
+      console.log('[ValueRenderer] Schema folder changed, updating compatible types')
+      setSchemaUpdateTrigger(prev => prev + 1)
+      setSelectedProtobufType('') // Reset selection when schema changes
+    }
+
+    schemaLoader.addChangeListener(handleSchemaChange)
+
+    return () => {
+      schemaLoader.removeChangeListener(handleSchemaChange)
+    }
+  }, [])
 
   // Get compatible protobuf types for the current message
   const compatibleProtobufTypes = useMemo(() => {
@@ -97,7 +115,7 @@ export const ValueRenderer: React.FC<Props> = ({ treeNode, compareWith: compare,
     } catch {
       return []
     }
-  }, [decodedMessage, message, treeNode])
+  }, [decodedMessage, message, treeNode, schemaUpdateTrigger])
 
   // Auto-select the best match: topic + compatible, then topic, then compatible, then first
   useMemo(() => {

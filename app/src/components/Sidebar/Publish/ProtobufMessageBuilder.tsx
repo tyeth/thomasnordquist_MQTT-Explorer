@@ -40,15 +40,41 @@ export const ProtobufMessageBuilder: React.FC<Props> = ({ onMessageGenerated, on
   const [messageData, setMessageData] = useState<FieldValue>({})
   const [oneofSelections, setOneofSelections] = useState<OneofSelection>({})
   const [availableTypes, setAvailableTypes] = useState<Array<{ name: string; namespace: string }>>([])
+  const [schemaUpdateTrigger, setSchemaUpdateTrigger] = useState(0)
 
-  // Load available message types
+  // Load available message types - rerun when schema folder changes
   useEffect(() => {
     const schemaLoader = GenericProtobufSchemaLoader.getInstance()
-    schemaLoader.getLoadedSchemas().then(schemas => {
-      const types = schemas.map(s => ({ name: s.name, namespace: s.namespace }))
-      setAvailableTypes(types)
-    })
-  }, [])
+
+    const loadSchemas = () => {
+      schemaLoader.getLoadedSchemas().then(schemas => {
+        const types = schemas.map(s => ({ name: s.name, namespace: s.namespace }))
+        setAvailableTypes(types)
+        // Reset selection if the current type is no longer available
+        if (selectedMessageType && !types.some(t => t.namespace === selectedMessageType)) {
+          setSelectedMessageType('')
+          setMessageData({})
+          setOneofSelections({})
+        }
+      })
+    }
+
+    // Load schemas initially
+    loadSchemas()
+
+    // Listen for schema folder changes
+    const handleSchemaChange = () => {
+      console.log('[ProtobufMessageBuilder] Schema folder changed, reloading types')
+      setSchemaUpdateTrigger(prev => prev + 1)
+      loadSchemas()
+    }
+
+    schemaLoader.addChangeListener(handleSchemaChange)
+
+    return () => {
+      schemaLoader.removeChangeListener(handleSchemaChange)
+    }
+  }, [schemaUpdateTrigger, selectedMessageType])
 
   const [selectedSchema, setSelectedSchema] = useState<any>(null)
 

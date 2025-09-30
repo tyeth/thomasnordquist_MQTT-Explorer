@@ -48,7 +48,7 @@ class ProtobufSchemaFolder extends React.PureComponent<Props> {
 
   private handleSelectFolder = async () => {
     try {
-      const folderPath = await rendererRpc.call(selectProtobufFolder, undefined, 10000)
+      const folderPath = await rendererRpc.call(selectProtobufFolder, undefined)
 
       if (folderPath) {
         this.props.actions.settings.setProtobufSchemaFolder(folderPath)

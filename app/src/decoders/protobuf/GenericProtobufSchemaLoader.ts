@@ -14,12 +14,31 @@ export class GenericProtobufSchemaLoader {
   private loadedSchemas: LoadedSchema[] = []
   private schemaFolder: string | undefined
   private loadPromise: Promise<void> | undefined
+  private listeners: Array<() => void> = []
 
   public static getInstance(): GenericProtobufSchemaLoader {
     if (!this.instance) {
       this.instance = new GenericProtobufSchemaLoader()
     }
     return this.instance
+  }
+
+  public addChangeListener(listener: () => void): void {
+    this.listeners.push(listener)
+  }
+
+  public removeChangeListener(listener: () => void): void {
+    this.listeners = this.listeners.filter(l => l !== listener)
+  }
+
+  private notifyListeners(): void {
+    this.listeners.forEach(listener => {
+      try {
+        listener()
+      } catch (error) {
+        console.error('[GenericProtobufSchemaLoader] Error in change listener:', error)
+      }
+    })
   }
 
   public setSchemaFolder(folderPath: string): void {
@@ -29,6 +48,7 @@ export class GenericProtobufSchemaLoader {
       this.loadedSchemas = []
       this.loadPromise = undefined
       console.log('[GenericProtobufSchemaLoader] Schema folder changed to:', folderPath)
+      this.notifyListeners()
     }
   }
 
