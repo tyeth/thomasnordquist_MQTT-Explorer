@@ -79,47 +79,30 @@ export const setEditorMode = (editorMode: string): Action => {
 }
 
 export const publish = (connectionId: string) => (dispatch: Dispatch<Action>, getState: () => AppState) => {
-  console.log('[PublishAction] publish action called with connectionId:', connectionId)
-
   const state = getState()
   const topic = state.publish.manualTopic ?? state.tree.get('selectedTopic')?.path()
-  console.log('[PublishAction] Topic:', topic)
-  console.log('[PublishAction] Manual topic:', state.publish.manualTopic)
-  console.log('[PublishAction] Selected topic from tree:', state.tree.get('selectedTopic')?.path())
 
   if (!topic) {
-    console.error('[PublishAction] No topic available, aborting publish')
     return
   }
 
   const publishEvent = makePublishEvent(connectionId)
-  console.log('[PublishAction] Publish event:', publishEvent)
-  console.log('[PublishAction] Payload string length:', state.publish.payload?.length)
-  console.log('[PublishAction] Payload string preview (first 100):', state.publish.payload?.substring(0, 100))
 
-  const payloadBase64Message = state.publish.payload ? new Base64Message(state.publish.payload) : null
-  if (payloadBase64Message) {
-    console.log('[PublishAction] Base64Message created, buffer size:', payloadBase64Message.toBuffer().byteLength)
-    const buffer = new Uint8Array(payloadBase64Message.toBuffer())
-    console.log('[PublishAction] Binary payload bytes (first 20):', Array.from(buffer.slice(0, 20)).map(b => '0x' + b.toString(16).padStart(2, '0')).join(' '))
-  }
+  // In protobuf mode, payload is already base64-encoded binary data
+  // In other modes (text/json/xml), payload is plain text that needs encoding
+  const payload = state.publish.payload
+    ? state.publish.editorMode === 'protobuf'
+      ? new Base64Message(state.publish.payload)
+      : Base64Message.fromString(state.publish.payload)
+    : null
 
   const mqttMessage: Partial<MqttMessage> = {
     topic,
-    payload: payloadBase64Message,
+    payload,
     retain: state.publish.retain,
     qos: state.publish.qos,
   }
-  console.log('[PublishAction] MQTT message object:', {
-    topic: mqttMessage.topic,
-    payloadSize: payloadBase64Message ? payloadBase64Message.toBuffer().byteLength : 0,
-    retain: mqttMessage.retain,
-    qos: mqttMessage.qos
-  })
-
-  console.log('[PublishAction] Emitting publish event')
   rendererEvents.emit(publishEvent, mqttMessage)
-  console.log('[PublishAction] Publish event emitted successfully')
 }
 
 export const toggleRetain = (): Action => {
