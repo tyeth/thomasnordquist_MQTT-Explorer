@@ -148,18 +148,19 @@ export const MessageDecoderButton = (props: Props) => {
                                             <ListSubheader>Protobuf Message Types</ListSubheader>
                                             {protobufTypes.map((type) => (
                                                 <MenuItem
-                                                    key={type.name}
-                                                    selected={type.name === message.protobufMessageType}
-                                                    onClick={() => selectProtobufType(type.name)}
+                                                    key={type.namespace}
+                                                    selected={type.namespace === message.protobufMessageType || type.name === message.protobufMessageType}
+                                                    onClick={() => selectProtobufType(type.namespace)}
                                                     onContextMenu={(e) => {
                                                         e.preventDefault()
-                                                        setAsDefaultType(type.name)
+                                                        setAsDefaultType(type.namespace)
                                                     }}
                                                     style={{ paddingLeft: '32px' }}
+                                                    title={type.namespace}
                                                 >
-                                                    {type.name}
-                                                    {type.name === message.protobufMessageType && ' ✓'}
-                                                    {type.name === defaultProtobufType && ' 🔹'}
+                                                    {type.namespace}
+                                                    {(type.namespace === message.protobufMessageType || type.name === message.protobufMessageType) && ' ✓'}
+                                                    {(type.namespace === defaultProtobufType || type.name === defaultProtobufType) && ' 🔹'}
                                                 </MenuItem>
                                             ))}
                                             <MenuItem

@@ -321,7 +321,9 @@ export class GenericProtobufSchemaLoader {
   }
 
   public decodeKnownMessage(buffer: Uint8Array, messageTypeName: string): any | undefined {
-    const schema = this.loadedSchemas.find(s => s.name === messageTypeName || s.namespace === messageTypeName)
+    // Prioritize namespace matching over name matching to handle duplicate names
+    const schema = this.loadedSchemas.find(s => s.namespace === messageTypeName)
+      || this.loadedSchemas.find(s => s.name === messageTypeName)
     if (!schema) {
       return undefined
     }

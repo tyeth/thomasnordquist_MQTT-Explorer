@@ -119,11 +119,12 @@ export const BulkDecoderUpdate: React.FC<Props> = ({ node }) => {
                         </MenuItem>
                         {protobufTypes.map(type => (
                             <MenuItem
-                                key={type.name}
-                                onClick={() => updateUndecodedMessages(type.name)}
+                                key={type.namespace}
+                                onClick={() => updateUndecodedMessages(type.namespace)}
                                 style={{ paddingLeft: '32px' }}
+                                title={type.namespace}
                             >
-                                {type.name}
+                                {type.namespace}
                             </MenuItem>
                         ))}
                         <Divider />
@@ -138,12 +139,13 @@ export const BulkDecoderUpdate: React.FC<Props> = ({ node }) => {
                         </MenuItem>
                         {protobufTypes.map(type => (
                             <MenuItem
-                                key={`default-${type.name}`}
-                                onClick={() => setDefaultProtobufType(type.name)}
+                                key={`default-${type.namespace}`}
+                                onClick={() => setDefaultProtobufType(type.namespace)}
                                 style={{ paddingLeft: '32px' }}
+                                title={type.namespace}
                             >
-                                {type.name}
-                                {type.name === defaultProtobufType && ' 🔹'}
+                                {type.namespace}
+                                {(type.namespace === defaultProtobufType || type.name === defaultProtobufType) && ' 🔹'}
                             </MenuItem>
                         ))}
                     </>

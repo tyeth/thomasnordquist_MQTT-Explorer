@@ -91,8 +91,10 @@ export const ProtobufDecoder: MessageDecoder = {
         const decoded = schemaLoader.decodeKnownMessage(buffer, format)
         if (decoded) {
           // Get the schema info to ensure consistent namespace formatting
+          // Prioritize namespace matching over name matching
           const availableTypes = schemaLoader.getAvailableMessageTypes()
-          const schemaInfo = availableTypes.find(t => t.name === format || t.namespace === format)
+          const schemaInfo = availableTypes.find(t => t.namespace === format)
+            || availableTypes.find(t => t.name === format)
 
           result = {
             messageType: schemaInfo?.name || format,

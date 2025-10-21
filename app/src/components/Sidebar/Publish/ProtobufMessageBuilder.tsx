@@ -667,7 +667,7 @@ export const ProtobufMessageBuilder: React.FC<Props> = ({ onMessageGenerated, on
 
       <Autocomplete
         options={availableTypes}
-        getOptionLabel={(option) => option.name}
+        getOptionLabel={(option) => option.namespace}
         value={availableTypes.find(t => t.namespace === selectedMessageType) || null}
         onChange={handleMessageTypeChange}
         renderInput={(params) => (
@@ -680,9 +680,9 @@ export const ProtobufMessageBuilder: React.FC<Props> = ({ onMessageGenerated, on
         )}
         renderOption={(option) => (
           <Box>
-            <Typography variant="body2">{option.name}</Typography>
+            <Typography variant="body2">{option.namespace}</Typography>
             <Typography variant="caption" color="textSecondary">
-              {option.namespace}
+              {option.name}
             </Typography>
           </Box>
         )}
