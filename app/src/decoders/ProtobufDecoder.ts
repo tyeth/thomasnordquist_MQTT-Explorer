@@ -66,7 +66,7 @@ export const ProtobufDecoder: MessageDecoder = {
 
   decode(input: Base64Message, format: string | undefined) {
     try {
-      console.log('[ProtobufDecoder] Starting decode, buffer size:', input.toBuffer().byteLength)
+      console.log('[ProtobufDecoder] Starting decode, buffer size:', input.toBuffer().byteLength, 'format:', format)
       const buffer = new Uint8Array(input.toBuffer())
       const schemaLoader = GenericProtobufSchemaLoader.getInstance()
 
@@ -83,10 +83,31 @@ export const ProtobufDecoder: MessageDecoder = {
           console.error('[ProtobufDecoder] Schema loading failed:', error)
         })
 
-      // Try to decode the message
-      console.log('[ProtobufDecoder] Attempting to decode message...')
-      const result = schemaLoader.tryDecodeMessage(buffer)
-      console.log('[ProtobufDecoder] Decode result:', result)
+      // If format is specified and not just "Protobuf", try to decode as that specific type
+      let result: { messageType: string; namespace: string; data: any } | undefined
+
+      if (format && format !== 'Protobuf') {
+        console.log('[ProtobufDecoder] Attempting to decode as specific type:', format)
+        const decoded = schemaLoader.decodeKnownMessage(buffer, format)
+        if (decoded) {
+          // Get the schema info to ensure consistent namespace formatting
+          const availableTypes = schemaLoader.getAvailableMessageTypes()
+          const schemaInfo = availableTypes.find(t => t.name === format || t.namespace === format)
+
+          result = {
+            messageType: schemaInfo?.name || format,
+            namespace: schemaInfo?.namespace || format,
+            data: decoded
+          }
+        }
+      }
+
+      // Otherwise, try to auto-detect the message type
+      if (!result) {
+        console.log('[ProtobufDecoder] Attempting to auto-detect message type...')
+        result = schemaLoader.tryDecodeMessage(buffer)
+        console.log('[ProtobufDecoder] Decode result:', result)
+      }
 
       if (result) {
         // Successfully decoded - create formatted JSON message

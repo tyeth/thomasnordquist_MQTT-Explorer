@@ -14,6 +14,8 @@ import CustomIconButton from '../../helper/CustomIconButton'
 import { MessageId } from '../MessageId'
 import { useSubscription } from '../../hooks/useSubscription'
 import { useDecoder } from '../../hooks/useDecoder'
+import { MessageDecoderButton } from './MessageDecoderButton'
+import { BulkDecoderUpdate } from './BulkDecoderUpdate'
 
 const throttle = require('lodash.throttle')
 
@@ -85,7 +87,12 @@ export const MessageHistory: React.FC<Props> = props => {
             &nbsp;
             <MessageId message={message} />
           </span>
-          <div style={{ float: 'right' }}>
+          <div style={{ float: 'right', display: 'flex', alignItems: 'center' }}>
+            <MessageDecoderButton
+              message={message}
+              node={node}
+              currentFormat={message.decoderFormat}
+            />
             <Copy value={value ?? ''} />
           </div>
         </span>
@@ -99,21 +106,27 @@ export const MessageHistory: React.FC<Props> = props => {
   const value = node.message ? decodeMessage(node.message)?.message?.format()[0] ?? null : null
 
   const isMessagePlottable = isPlottable(value)
+
+  const contentIndicators = (
+    <div style={{ display: 'flex', gap: '4px', alignItems: 'center' }}>
+      {isMessagePlottable && (
+        <CustomIconButton
+          style={{ height: '22px', width: '22px' }}
+          onClick={addNodeToCharts}
+          tooltip="Add to chart panel"
+        >
+          <ShowChart style={{ marginTop: '-5px' }} />
+        </CustomIconButton>
+      )}
+      <BulkDecoderUpdate node={node} />
+    </div>
+  )
+
   return (
     <div>
       <History
         items={historyElements}
-        contentTypeIndicator={
-          isMessagePlottable ? (
-            <CustomIconButton
-              style={{ height: '22px', width: '22px' }}
-              onClick={addNodeToCharts}
-              tooltip="Add to chart panel"
-            >
-              <ShowChart style={{ marginTop: '-5px' }} />
-            </CustomIconButton>
-          ) : undefined
-        }
+        contentTypeIndicator={contentIndicators}
         onClick={displayMessage}
       >
         {isMessagePlottable ? <TopicPlot node={node} history={node.messageHistory} /> : null}
