@@ -33,6 +33,8 @@ export const TopicTypeButton = (props: { node?: q.TreeNode<any> }) => {
       if (decoder === null) {
         // Clear decoder
         node.viewModel.decoder = undefined
+        // Also clear the default protobuf message type
+        node.viewModel.setDefaultProtobufMessageType(undefined)
       } else {
         node.viewModel.decoder = { decoder, format }
       }

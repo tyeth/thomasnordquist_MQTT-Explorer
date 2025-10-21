@@ -118,22 +118,48 @@ export const ValueRenderer: React.FC<Props> = ({ treeNode, compareWith: compare,
     }
   }, [decodedMessage, message, treeNode, schemaUpdateTrigger])
 
+  // Get all available protobuf types
+  const allProtobufTypes = useMemo(() => {
+    if (decodedMessage?.decoder !== Decoder.PROTOBUF) {
+      return []
+    }
+
+    const schemaLoader = GenericProtobufSchemaLoader.getInstance()
+    const allTypes = schemaLoader.getAvailableMessageTypes()
+
+    // Mark which ones are compatible
+    return allTypes.map(type => {
+      const compatible = compatibleProtobufTypes.find(c => c.namespace === type.namespace)
+      return {
+        messageType: type.name,
+        namespace: type.namespace,
+        data: compatible?.data,
+        isHighlyCompatible: compatible?.isHighlyCompatible || false,
+        topicMatch: compatible?.topicMatch || false,
+        isCompatible: !!compatible
+      }
+    })
+  }, [decodedMessage, compatibleProtobufTypes, schemaUpdateTrigger])
+
   // Auto-select the best match: topic + compatible, then topic, then compatible, then first
   useMemo(() => {
-    if (compatibleProtobufTypes.length > 0 && !selectedProtobufType) {
-      // The array is already sorted with our priority logic, so just take the first one
-      setSelectedProtobufType(compatibleProtobufTypes[0].namespace)
+    if (allProtobufTypes.length > 0 && !selectedProtobufType) {
+      // Find the first compatible type (they're already sorted with priority)
+      const firstCompatible = allProtobufTypes.find(t => t.isCompatible)
+      if (firstCompatible) {
+        setSelectedProtobufType(firstCompatible.namespace)
+      }
     }
-  }, [compatibleProtobufTypes, selectedProtobufType])
+  }, [allProtobufTypes, selectedProtobufType])
 
   // Create a custom decoded message for the selected protobuf type
   const customDecodedMessage = useMemo(() => {
-    if (decodedMessage?.decoder !== Decoder.PROTOBUF || !selectedProtobufType || compatibleProtobufTypes.length === 0) {
+    if (decodedMessage?.decoder !== Decoder.PROTOBUF || !selectedProtobufType || allProtobufTypes.length === 0) {
       return decodedMessage
     }
 
-    const selectedType = compatibleProtobufTypes.find(t => t.namespace === selectedProtobufType)
-    if (!selectedType) {
+    const selectedType = allProtobufTypes.find(t => t.namespace === selectedProtobufType)
+    if (!selectedType || !selectedType.data) {
       return decodedMessage
     }
 
@@ -172,8 +198,11 @@ export const ValueRenderer: React.FC<Props> = ({ treeNode, compareWith: compare,
   )
 
   const handleProtobufTypeChange = useCallback((event: any, value: any | null) => {
-    setSelectedProtobufType(value?.namespace || '')
-  }, [])
+    const newType = value?.namespace || ''
+    setSelectedProtobufType(newType)
+    // Update the default protobuf type for the topic so history messages update
+    treeNode.viewModel?.setDefaultProtobufMessageType(newType || undefined)
+  }, [treeNode])
 
   function renderValue(
     treeNode: q.TreeNode<TopicViewModel>,
@@ -210,9 +239,9 @@ export const ValueRenderer: React.FC<Props> = ({ treeNode, compareWith: compare,
     return (
       <Box mb={1}>
         <Autocomplete
-          options={compatibleProtobufTypes}
-          getOptionLabel={(option) => `${option.messageType}${option.isHighlyCompatible ? ' (*)' : ''}`}
-          value={compatibleProtobufTypes.find(t => t.namespace === selectedProtobufType) || null}
+          options={allProtobufTypes}
+          getOptionLabel={(option) => `${option.namespace}${option.isHighlyCompatible ? ' ★' : option.isCompatible ? ' ✓' : ''}`}
+          value={allProtobufTypes.find(t => t.namespace === selectedProtobufType) || null}
           onChange={handleProtobufTypeChange}
           renderInput={(params) => (
             <TextField
@@ -220,16 +249,17 @@ export const ValueRenderer: React.FC<Props> = ({ treeNode, compareWith: compare,
               label="Protobuf Message Type"
               variant="outlined"
               size="small"
+              helperText="★ = highly compatible, ✓ = compatible"
             />
           )}
           renderOption={(option) => (
-            <div>
+            <div style={{ opacity: option.isCompatible ? 1 : 0.5 }}>
               <div>
-                {option.messageType}
-                {option.isHighlyCompatible ? ' (*)' : ''}
+                {option.namespace}
+                {option.isHighlyCompatible ? ' ★' : option.isCompatible ? ' ✓' : ''}
               </div>
               <div style={{ fontSize: '0.8em', color: '#666' }}>
-                {option.namespace}
+                {option.messageType}
               </div>
             </div>
           )}

@@ -53,10 +53,12 @@ export const MessageDecoderButton = (props: Props) => {
 
     const selectProtobufType = useCallback(
         (messageType: string) => {
-            node.viewModel?.setMessageDecoder(message, 'Protobuf', messageType)
+            // Only set as the default for the topic
+            // This applies to all messages without explicit overrides
+            node.viewModel?.setDefaultProtobufMessageType(messageType)
             setOpen(false)
         },
-        [node, message]
+        [node]
     )
 
     const setAsDefaultType = useCallback(
