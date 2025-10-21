@@ -1,6 +1,6 @@
 {
   "name": "MQTT-Explorer",
-  "version": "0.4.0-beta.5",
+  "version": "0.4.0-beta.6",
   "description": "Explore your message queues",
   "main": "dist/src/electron.js",
   "engines": {
@@ -128,6 +128,7 @@
     "mime": "^2.4.4",
     "mqtt": "^4.3.6",
     "protobufjs": "^6.11.4",
+
     "sha1": "^1.1.1",
     "sparkplug-payload": "^1.0.3",
     "uuid": "^8.3.2",
