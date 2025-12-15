@@ -87,9 +87,18 @@ export const publish = (connectionId: string) => (dispatch: Dispatch<Action>, ge
   }
 
   const publishEvent = makePublishEvent(connectionId)
+
+  // In protobuf mode, payload is already base64-encoded binary data
+  // In other modes (text/json/xml), payload is plain text that needs encoding
+  const payload = state.publish.payload
+    ? state.publish.editorMode === 'protobuf'
+      ? new Base64Message(state.publish.payload)
+      : Base64Message.fromString(state.publish.payload)
+    : null
+
   const mqttMessage: Partial<MqttMessage> = {
     topic,
-    payload: state.publish.payload ? Base64Message.fromString(state.publish.payload) : null,
+    payload,
     retain: state.publish.retain,
     qos: state.publish.qos,
   }

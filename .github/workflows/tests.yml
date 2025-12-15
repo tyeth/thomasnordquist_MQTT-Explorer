@@ -1,6 +1,7 @@
 on:
   pull_request_target: # Use pull_request_target
     branches: [master, beta, release]
+  workflow_dispatch:
 
 jobs:
   test:
@@ -22,17 +23,15 @@ jobs:
         run: yarn ui-test
       - name: Post-processing
         run: ./scripts/prepareVideo.sh
-      - uses: hkusu/s3-upload-action@v2
-        id: upload # specify some ID for use in subsequent steps
+      - name: Upload UI Test Results
+        uses: actions/upload-artifact@v4
         with:
-          aws-access-key-id: ${{ vars.AWS_KEY_ID }}
-          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          aws-region: 'eu-central-1'
-          aws-bucket: ${{ vars.AWS_BUCKET }}
-          file-path: './ui-test.gif'
-          content-type: image/gif
-          output-file-url: 'true'
-      - name: Show URL
-        run: echo '${{ steps.upload.outputs.file-url }}'
+          name: ui-test-results
+          path: |
+            ./ui-test.gif
+            ./ui-test.mp4
+          retention-days: 30
+      - name: Show Artifact Info
+        run: echo "UI test artifacts uploaded successfully"
         id: artifact-upload-step
-      - run: echo '<picture><img src="${{ steps.upload.outputs.file-url }}"></picture>' >> $GITHUB_STEP_SUMMARY
+      - run: echo "📹 UI test video and GIF have been uploaded as artifacts" >> $GITHUB_STEP_SUMMARY

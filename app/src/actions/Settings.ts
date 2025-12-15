@@ -169,3 +169,11 @@ export const toggleTheme = () => (dispatch: Dispatch<any>, getState: () => AppSt
   })
   dispatch(storeSettings())
 }
+
+export const setProtobufSchemaFolder = (protobufSchemaFolder?: string) => (dispatch: Dispatch<any>) => {
+  dispatch({
+    protobufSchemaFolder,
+    type: ActionTypes.SETTINGS_SET_PROTOBUF_SCHEMA_FOLDER,
+  })
+  dispatch(storeSettings())
+}

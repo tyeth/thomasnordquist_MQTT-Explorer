@@ -37,6 +37,13 @@ export function EditorModeSelect(props: Props) {
         label="json"
         labelPlacement="top"
       />
+      <FormControlLabel
+        value="protobuf"
+        style={labelStyle}
+        control={<Radio color="primary" />}
+        label="protobuf"
+        labelPlacement="top"
+      />
     </RadioGroup>
   )
 }

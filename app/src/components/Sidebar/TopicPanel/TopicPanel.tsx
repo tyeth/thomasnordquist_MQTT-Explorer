@@ -8,6 +8,7 @@ import { connect } from 'react-redux'
 import { RecursiveTopicDeleteButton } from './RecursiveTopicDeleteButton'
 import { TopicDeleteButton } from './TopicDeleteButton'
 import { TopicTypeButton } from './TopicTypeButton'
+import { DisplayFormatButton } from './DisplayFormatButton'
 import { sidebarActions } from '../../../actions'
 
 const TopicPanel = (props: { node?: q.TreeNode<any>; actions: typeof sidebarActions }) => {
@@ -30,6 +31,7 @@ const TopicPanel = (props: { node?: q.TreeNode<any>; actions: typeof sidebarActi
           <TopicDeleteButton node={node} deleteTopicAction={deleteTopic} />
           <RecursiveTopicDeleteButton node={node} deleteTopicAction={deleteTopic} />
           <TopicTypeButton node={node} />
+          <DisplayFormatButton node={node} />
         </span>
         <Topic node={node} />
       </Panel>

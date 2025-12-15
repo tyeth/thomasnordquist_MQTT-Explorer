@@ -5,6 +5,14 @@ on:
     branches:
       - release
       - beta
+      - master
+      - main
+      - protobuf  # Add your current branch
+  pull_request:
+    branches:
+      - master
+      - main
+  workflow_dispatch:
 
 concurrency:
   group: ${{ github.ref }}
@@ -31,23 +39,73 @@ jobs:
           node-version: 20
       - run: npm install -g yarn
       - run: yarn
-      - id: create_token # get ReleaseBot access token
+      
+      # For forks, skip semantic release and just build
+      - name: Check if running on original repo
+        id: repo_check
+        run: |
+          if [[ "${{ github.repository }}" == "thomasnordquist/MQTT-Explorer" ]] && [[ "${{ github.event_name }}" == "push" ]] && [[ "${{ contains(github.ref, 'release') || contains(github.ref, 'beta') }}" == "true" ]]; then
+            echo "is_original_repo=true" >> $GITHUB_OUTPUT
+            echo "should_build=false" >> $GITHUB_OUTPUT
+          else
+            echo "is_original_repo=false" >> $GITHUB_OUTPUT
+            echo "should_build=true" >> $GITHUB_OUTPUT
+          fi
+        shell: bash
+      
+      # Original repo semantic release workflow
+      - id: create_token
+        if: steps.repo_check.outputs.is_original_repo == 'true'
         uses: tibdex/github-app-token@v2
         with:
           app_id: ${{ secrets.RELEASE_BOT_APP_ID }}
           private_key: ${{ secrets.RELEASE_BOT_PRIVATE_KEY }}
+      
       - name: Semantic Release
+        if: steps.repo_check.outputs.is_original_repo == 'true'
         uses: cycjimmy/semantic-release-action@v4
-        id: semantic   # Need an `id` for output variables
+        id: semantic
         env:
           GITHUB_TOKEN: ${{ steps.create_token.outputs.token }}
+      
+      # Build steps (run for forks or after successful semantic release)
       - run: yarn build
-        if: steps.semantic.outputs.new_release_published == 'true'
+        if: steps.repo_check.outputs.should_build == 'true' || steps.semantic.outputs.new_release_published == 'true'
+      
       - run: yarn prepare-release
-        if: steps.semantic.outputs.new_release_published == 'true'
-      - run: yarn package ${{ matrix.build.task }}
-        if: steps.semantic.outputs.new_release_published == 'true'
+        if: steps.repo_check.outputs.should_build == 'true' || steps.semantic.outputs.new_release_published == 'true'
+      
+      # For forks: build locally without uploading to stores
+      - name: Package (local build only)
+        if: steps.repo_check.outputs.should_build == 'true'
+        run: yarn package ${{ matrix.build.task }}
+        env:
+          # No GH_TOKEN or store credentials - prevents uploads
+          NODE_ENV: development
+      
+      # For original repo: full package with store uploads
+      - name: Package with store upload (original repo only)
+        if: steps.repo_check.outputs.is_original_repo == 'true' && steps.semantic.outputs.new_release_published == 'true'
+        run: yarn package ${{ matrix.build.task }}
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      
+      # Separate Snapcraft upload for Linux builds on original repo
+      - name: Upload to Snapcraft Store (Linux only, original repo)
+        if: steps.repo_check.outputs.is_original_repo == 'true' && matrix.build.task == 'linux' && steps.semantic.outputs.new_release_published == 'true'
+        run: |
+          # Re-run package command with Snapcraft credentials for store upload
+          yarn package linux
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           SNAPCRAFT_STORE_CREDENTIALS: ${{ secrets.SNAPCRAFT_STORE_CREDENTIALS }}
+      
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: build-${{ matrix.build.task }}-${{ runner.os }}
+          path: |
+            build/**/*
+            !build/**/node_modules
+          retention-days: 30
   

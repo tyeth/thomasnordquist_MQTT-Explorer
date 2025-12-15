@@ -18,13 +18,12 @@ import type { UMetric } from 'sparkplug-payload/lib/sparkplugbpayload'
  * Main sample function which includes the run() function for running the sample
  */
 
-
 export interface MockSparkplugClient {
-    stop: () => void
+  stop: () => void
 }
 
-var sample = (function () {
-    var config = {
+let sample = (function () {
+  let config = {
         serverUrl: 'tcp://127.0.0.1:1883',
         username: '',
         password: '',
@@ -32,52 +31,52 @@ var sample = (function () {
         edgeNode: 'JavaScript Edge Node',
         clientId: 'JavaScriptSimpleEdgeNode',
         version: 'spBv1.0',
-    },
-        hwVersion = 'Emulated Hardware',
-        swVersion = 'v1.0.0',
-        deviceId = 'Emulated Device',
-        sparkPlugClient,
-        publishPeriod = 5000,
+      },
+      hwVersion = 'Emulated Hardware',
+      swVersion = 'v1.0.0',
+      deviceId = 'Emulated Device',
+      sparkPlugClient,
+      publishPeriod = 5000,
         // Generates a random integer
-        randomInt = function () {
-            return 1 + Math.floor(Math.random() * 10)
+      randomInt = function () {
+          return 1 + Math.floor(Math.random() * 10)
         },
         // Get BIRTH payload for the edge node
-        getNodeBirthPayload = function (): UPayload {
-            return {
-                timestamp: new Date().getTime(),
-                metrics: [
-                    {
-                        name: 'Node Control/Rebirth',
-                        type: 'Boolean',
-                        value: false,
-                    },
-                    {
-                        name: 'Template1',
-                        type: 'Template',
-                        value: {
-                            isDefinition: true,
-                            metrics: [
+      getNodeBirthPayload = function (): UPayload {
+          return {
+              timestamp: new Date().getTime(),
+              metrics: [
+                  {
+                    name: 'Node Control/Rebirth',
+                    type: 'Boolean',
+                    value: false,
+                  },
+                  {
+                    name: 'Template1',
+                    type: 'Template',
+                    value: {
+                          isDefinition: true,
+                          metrics: [
                                 { name: 'myBool', value: false, type: 'Boolean' },
                                 { name: 'myInt', value: 0, type: 'UInt32' },
                             ],
-                            parameters: [
-                                {
-                                    name: 'param1',
-                                    type: 'String',
-                                    value: 'value1',
-                                },
+                          parameters: [
+                              {
+                                name: 'param1',
+                                type: 'String',
+                                value: 'value1',
+                              },
                             ],
                         },
-                    },
+                  },
                 ],
             }
         },
         // Get BIRTH payload for the device
-        getDeviceBirthPayload = function (): UPayload {
-            return {
-                timestamp: new Date().getTime(),
-                metrics: [
+      getDeviceBirthPayload = function (): UPayload {
+          return {
+              timestamp: new Date().getTime(),
+              metrics: [
                     { name: 'my_boolean', value: Math.random() > 0.5, type: 'Boolean' },
                     { name: 'my_double', value: Math.random() * 0.123456789, type: 'Double' },
                     { name: 'my_float', value: Math.random() * 0.123, type: 'Float' },
@@ -91,46 +90,46 @@ var sample = (function () {
                     { name: 'Outputs/2', value: 1.23, type: 'UInt64' },
                     { name: 'Properties/hw_version', value: hwVersion, type: 'String' },
                     { name: 'Properties/sw_version', value: swVersion, type: 'String' },
-                    {
-                        name: 'my_dataset',
-                        type: 'DataSet',
-                        value: {
-                            numOfColumns: 2,
-                            types: ['String', 'String'],
-                            columns: ['str1', 'str2'],
-                            rows: [
+                  {
+                    name: 'my_dataset',
+                    type: 'DataSet',
+                    value: {
+                          numOfColumns: 2,
+                          types: ['String', 'String'],
+                          columns: ['str1', 'str2'],
+                          rows: [
                                 ['x', 'a'],
                                 ['y', 'b'],
                             ],
                         },
-                    },
-                    {
-                        name: 'TemplateInstance1',
-                        type: 'Template',
-                        value: {
-                            templateRef: 'Template1',
-                            isDefinition: false,
-                            metrics: [
+                  },
+                  {
+                    name: 'TemplateInstance1',
+                    type: 'Template',
+                    value: {
+                          templateRef: 'Template1',
+                          isDefinition: false,
+                          metrics: [
                                 { name: 'myBool', value: true, type: 'Boolean' },
                                 { name: 'myInt', value: 100, type: 'Int8' },
                             ],
-                            parameters: [
-                                {
-                                    name: 'param1',
-                                    type: 'String',
-                                    value: 'value2',
-                                },
+                          parameters: [
+                              {
+                                name: 'param1',
+                                type: 'String',
+                                value: 'value2',
+                              },
                             ],
                         },
-                    },
+                  },
                 ],
             }
         },
         // Get data payload for the device
-        getDataPayload = function (): UPayload {
-            return {
-                timestamp: new Date().getTime(),
-                metrics: [
+      getDataPayload = function (): UPayload {
+          return {
+              timestamp: new Date().getTime(),
+              metrics: [
                     { name: 'my_boolean', value: Math.random() > 0.5, type: 'Boolean' },
                     { name: 'my_double', value: Math.random() * 0.123456789, type: 'Double' },
                     { name: 'my_float', value: Math.random() * 0.123, type: 'UInt64' },
@@ -140,49 +139,49 @@ var sample = (function () {
             }
         },
         // Runs the sample
-        run = async function (): Promise<MockSparkplugClient> {
+      run = async function (): Promise<MockSparkplugClient> {
             // Create the SparkplugClient
-            const sparkplugClient = SparkplugClient.newClient(config)
-            let updateInterval: NodeJS.Timeout | null = null
-            const connected = new Promise<MockSparkplugClient>((resolve) => {
+          const sparkplugClient = SparkplugClient.newClient(config)
+          let updateInterval: NodeJS.Timeout | null = null
+          const connected = new Promise<MockSparkplugClient>((resolve) => {
 
                 // Create 'birth' handler
-                sparkplugClient.on('birth', () => {
+              sparkplugClient.on('birth', () => {
                     // Publish Node BIRTH certificate
-                    sparkplugClient.publishNodeBirth(getNodeBirthPayload())
+                  sparkplugClient.publishNodeBirth(getNodeBirthPayload())
                     // Publish Device BIRTH certificate
-                    sparkplugClient.publishDeviceBirth(deviceId, getDeviceBirthPayload())
-                    resolve({
-                        stop: () => {
-                            if (updateInterval) {
-                                clearInterval(updateInterval)
+                  sparkplugClient.publishDeviceBirth(deviceId, getDeviceBirthPayload())
+                  resolve({
+                      stop: () => {
+                          if (updateInterval) {
+                              clearInterval(updateInterval)
                             }
-                            sparkplugClient.stop()
-                        }
+                          sparkplugClient.stop()
+                        },
                     })
                 })
             })
 
             // Create Incoming Message Handler
-            sparkplugClient.on('message', function (topic: string, payload: UPayload) {
-                console.log(topic, payload)
+          sparkplugClient.on('message', function (topic: string, payload: UPayload) {
+              console.log(topic, payload)
             })
 
             // Create node command handler
             // spell-checker: disable-next-line
-            sparkplugClient.on('ncmd', function (payload: UPayload) {
-                var timestamp = payload.timestamp,
-                    metrics = payload.metrics
+          sparkplugClient.on('ncmd', function (payload: UPayload) {
+              let timestamp = payload.timestamp,
+                  metrics = payload.metrics
 
-                if (metrics !== undefined && metrics !== null) {
-                    for (var i = 0; i < metrics.length; i++) {
-                        var metric = metrics[i]
-                        if (metric.name == 'Node Control/Rebirth' && metric.value) {
-                            console.log("Received 'Rebirth' command")
+              if (metrics !== undefined && metrics !== null) {
+                  for (let i = 0; i < metrics.length; i++) {
+                      let metric = metrics[i]
+                      if (metric.name == 'Node Control/Rebirth' && metric.value) {
+                          console.log("Received 'Rebirth' command")
                             // Publish Node BIRTH certificate
-                            sparkplugClient.publishNodeBirth(getNodeBirthPayload())
+                          sparkplugClient.publishNodeBirth(getNodeBirthPayload())
                             // Publish Device BIRTH certificate
-                            sparkplugClient.publishDeviceBirth(deviceId, getDeviceBirthPayload())
+                          sparkplugClient.publishDeviceBirth(deviceId, getDeviceBirthPayload())
                         }
                     }
                 }
@@ -190,60 +189,59 @@ var sample = (function () {
 
             // Create device command handler
             // spell-checker: disable-next-line
-            sparkplugClient.on('dcmd', function (deviceId: string, payload: UPayload) {
-                var timestamp = payload.timestamp,
-                    metrics = payload.metrics,
-                    inboundMetricMap: { [name: string]: any } = {},
-                    outboundMetric: Array<UMetric> = [],
-                    outboundPayload: UPayload
+          sparkplugClient.on('dcmd', function (deviceId: string, payload: UPayload) {
+              let timestamp = payload.timestamp,
+                  metrics = payload.metrics,
+                  inboundMetricMap: { [name: string]: any } = {},
+                  outboundMetric: Array<UMetric> = [],
+                  outboundPayload: UPayload
 
-                console.log('Command received for device ' + deviceId)
+              console.log('Command received for device ' + deviceId)
 
                 // Loop over the metrics and store them in a map
-                if (metrics !== undefined && metrics !== null) {
-                    for (var i = 0; i < metrics.length; i++) {
-                        var metric = metrics[i]
-                        if (metric.name !== undefined && metric.name !== null) {
-                            inboundMetricMap[metric.name] = metric.value
+              if (metrics !== undefined && metrics !== null) {
+                  for (let i = 0; i < metrics.length; i++) {
+                      let metric = metrics[i]
+                      if (metric.name !== undefined && metric.name !== null) {
+                          inboundMetricMap[metric.name] = metric.value
                         }
                     }
                 }
-                if (inboundMetricMap['Outputs/0'] !== undefined && inboundMetricMap['Outputs/0'] !== null) {
-                    console.log('Outputs/0: ' + inboundMetricMap['Outputs/0'])
-                    outboundMetric.push({ name: 'Inputs/0', value: inboundMetricMap['Outputs/0'], type: 'Boolean' })
-                    outboundMetric.push({ name: 'Outputs/0', value: inboundMetricMap['Outputs/0'], type: 'Boolean' })
-                    console.log('Updated value for Inputs/0 ' + inboundMetricMap['Outputs/0'])
+              if (inboundMetricMap['Outputs/0'] !== undefined && inboundMetricMap['Outputs/0'] !== null) {
+                  console.log('Outputs/0: ' + inboundMetricMap['Outputs/0'])
+                  outboundMetric.push({ name: 'Inputs/0', value: inboundMetricMap['Outputs/0'], type: 'Boolean' })
+                  outboundMetric.push({ name: 'Outputs/0', value: inboundMetricMap['Outputs/0'], type: 'Boolean' })
+                  console.log('Updated value for Inputs/0 ' + inboundMetricMap['Outputs/0'])
                 } else if (inboundMetricMap['Outputs/1'] !== undefined && inboundMetricMap['Outputs/1'] !== null) {
-                    console.log('Outputs/1: ' + inboundMetricMap['Outputs/1'])
-                    outboundMetric.push({ name: 'Inputs/1', value: inboundMetricMap['Outputs/1'], type: 'Int32' })
-                    outboundMetric.push({ name: 'Outputs/1', value: inboundMetricMap['Outputs/1'], type: 'Int32' })
-                    console.log('Updated value for Inputs/1 ' + inboundMetricMap['Outputs/1'])
+                  console.log('Outputs/1: ' + inboundMetricMap['Outputs/1'])
+                  outboundMetric.push({ name: 'Inputs/1', value: inboundMetricMap['Outputs/1'], type: 'Int32' })
+                  outboundMetric.push({ name: 'Outputs/1', value: inboundMetricMap['Outputs/1'], type: 'Int32' })
+                  console.log('Updated value for Inputs/1 ' + inboundMetricMap['Outputs/1'])
                 } else if (inboundMetricMap['Outputs/2'] !== undefined && inboundMetricMap['Outputs/2'] !== null) {
-                    console.log('Outputs/2: ' + inboundMetricMap['Outputs/2'])
-                    outboundMetric.push({ name: 'Inputs/2', value: inboundMetricMap['Outputs/2'], type: 'UInt64' })
-                    outboundMetric.push({ name: 'Outputs/2', value: inboundMetricMap['Outputs/2'], type: 'UInt64' })
-                    console.log('Updated value for Inputs/2 ' + inboundMetricMap['Outputs/2'])
+                  console.log('Outputs/2: ' + inboundMetricMap['Outputs/2'])
+                  outboundMetric.push({ name: 'Inputs/2', value: inboundMetricMap['Outputs/2'], type: 'UInt64' })
+                  outboundMetric.push({ name: 'Outputs/2', value: inboundMetricMap['Outputs/2'], type: 'UInt64' })
+                  console.log('Updated value for Inputs/2 ' + inboundMetricMap['Outputs/2'])
                 }
 
-                outboundPayload = {
-                    timestamp: new Date().getTime(),
-                    metrics: outboundMetric,
+              outboundPayload = {
+                  timestamp: new Date().getTime(),
+                  metrics: outboundMetric,
                 }
 
                 // Publish device data
-                sparkplugClient.publishDeviceData(deviceId, outboundPayload)
+              sparkplugClient.publishDeviceData(deviceId, outboundPayload)
             })
 
-            updateInterval = setInterval(function () {
+          updateInterval = setInterval(function () {
                 // Publish device data
-                sparkplugClient.publishDeviceData(deviceId, getDataPayload())
-
+              sparkplugClient.publishDeviceData(deviceId, getDataPayload())
 
             }, 2000)
-            return connected
+          return connected
         }
 
-    return { run: run }
+  return { run }
 })()
 
 export default sample

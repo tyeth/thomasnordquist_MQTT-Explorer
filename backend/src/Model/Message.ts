@@ -15,4 +15,9 @@ export interface Message extends MemoryConsumptionExpressedByLength {
 
   // Global message counter, not mqtt related
   messageNumber: number
+
+  // Decoder override for this specific message
+  decoderFormat?: string
+  // For protobuf messages, the specific message type to decode as
+  protobufMessageType?: string
 }
